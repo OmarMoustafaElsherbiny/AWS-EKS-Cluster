@@ -3,7 +3,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      required_version = "~> 5.55"
+      version = "~> 5.55"
     }
   }
 }
@@ -17,12 +17,12 @@ locals {
 
   public_subnets_eks_tags = {
     "kubernetes.io/role/elb" = "1"
-    "kubernetes.io/cluster/${local.tags["env"]}-${local.eks_name}" = "owned"
+    "kubernetes.io/cluster/${local.general_tags["env"]}-${local.eks_name}" = "owned"
   }
 
   private_subnet_eks_tags = {
     "kubernetes.io/role/internal-elb" = "1"
-    "kubernetes.io/cluster/${local.tags["env"]}-${local.eks_name}" = "owned"
+    "kubernetes.io/cluster/${local.general_tags["env"]}-${local.eks_name}" = "owned"
   }
 
   general_tags = {
@@ -53,4 +53,6 @@ module "three_tier_vpc" {
   tags = local.general_tags
 
   private_subnet_tags = local.private_subnet_eks_tags
+
+  public_subnet_tags = local.public_subnets_eks_tags
 }
