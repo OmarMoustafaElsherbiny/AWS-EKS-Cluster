@@ -36,7 +36,7 @@ provider "aws" {
   region = local.region 
 }
 
-module "three_tier_vpc" {
+module "two_tier_vpc" {
   source = "./modules/vpc"
 
   name = "my-vpc"
