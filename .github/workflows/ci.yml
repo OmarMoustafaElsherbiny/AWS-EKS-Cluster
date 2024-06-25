@@ -1,23 +1,22 @@
 name: "CI"
 
-run-name: ${{ github.actor }} invoked Terraform & Ansible jobs
+run-name: ${{ github.actor }} invoked Terraform Apply 
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/**]
     paths-ignore:
-      - "**/README.md"
-      - "**/LICENSE"
+      - "README.md"
+      - "LICENSE"
+      - ".gitignore"
       - "Diagram/**"
+      - ".github/workflows/**"
 
 env:
-  # Terraform CLoud Action Variables
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
   TF_CLOUD_ORGANIZATION: "${{ secrets.TF_CLOUD_ORGANIZATION }}"
   TF_WORKSPACE: "${{ secrets.TF_WORKSPACE }}"
   ROOT_CONFIG_DIRECTORY: "./"
-  # AWS CLI Action Variables
-  AWS_REGION: "us-east-1"
 
 jobs:
   deploy:
@@ -36,33 +35,17 @@ jobs:
           directory: ${{ env.ROOT_CONFIG_DIRECTORY }}
           workspace: ${{ env.TF_WORKSPACE }}
 
-      - name: Create Plan Run
+      - name: Create Apply Run
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
-        id: plan-run
+        id: apply-run
         with:
           workspace: ${{ env.TF_WORKSPACE }}
           configuration_version: ${{ steps.apply-upload.outputs.configuration_version_id }}
-          plan_only: true
 
-      - name: Get Plan Output
-        uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.0.0
-        id: plan-output
+      - name: Terraform Apply
+        uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
+        if: fromJSON(steps.apply-run.outputs.payload).data.attributes.actions.IsConfirmable
+        id: apply
         with:
-          plan: ${{ fromJSON(steps.plan-run.outputs.payload).data.relationships.plan.data.id }}
-
-
-      # - name: Create Apply Run
-      #   uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
-      #   id: apply-run
-      #   with:
-      #     workspace: ${{ env.TF_WORKSPACE }}
-      #     configuration_version: ${{ steps.apply-upload.outputs.configuration_version_id }}
-
-      # - name: Terraform Apply
-      #   uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
-      #   if: fromJSON(steps.apply-run.outputs.payload).data.attributes.actions.IsConfirmable
-      #   id: apply
-      #   with:
-      #     run: ${{ steps.apply-run.outputs.run_id }}
-      #     comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
-
+          run: ${{ steps.apply-run.outputs.run_id }}
+          comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
