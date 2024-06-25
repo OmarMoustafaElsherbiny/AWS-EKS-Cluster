@@ -96,7 +96,6 @@ jobs:
           directory: ${{ env.ROOT_CONFIG_DIRECTORY }}
           workspace: ${{ env.TF_WORKSPACE }}
           organization: ${{ env.TF_CLOUD_ORGANIZATION }}
-          speculative: true
 
       - name: Create Apply Run
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
