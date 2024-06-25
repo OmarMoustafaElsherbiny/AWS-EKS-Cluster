@@ -1,12 +1,7 @@
-# resource "aws_eks_cluster" "this" {
-#   name = "${local.general_tags.env}-${local.eks_name}-eks"
-# }
+################################################################################
+# EKS Role and Policies 
+################################################################################
 
-
-
-
-### IAM Roles that eks assumes to manage resources (nodes) on your behalf
-## Policy that gives the action to assume the role for EKS service
 resource "aws_iam_role" "eks" {
   name = "${local.general_tags.env}-${local.eks_name}-eks-cluster"
   assume_role_policy = <<POLICY
@@ -25,11 +20,15 @@ resource "aws_iam_role" "eks" {
 POLICY
 }
 
-## Attaching managed EKSCluster Policy to the IAM role that will be assumed by the EKS service (control plane) to manage cluster
 resource "aws_iam_role_policy_attachment" "eks" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   role = aws_iam_role.eks.name
 }
+
+
+################################################################################
+# Control Plane (EKS) 
+################################################################################
 
 resource "aws_eks_cluster" "eks" {
   name = "${local.general_tags.env}-${local.eks_name}"
@@ -54,9 +53,9 @@ resource "aws_eks_cluster" "eks" {
 }
 
 
-##################### WORKER NODES #####################
-
-# This allows (effect) EC2 service (Principal service) The action to assume the role (action)
+################################################################################
+# Worker Nodes Role and Policies 
+################################################################################
 
 resource "aws_iam_role" "nodes" {
   name = "${local.general_tags.env}-${local.eks_name}-eks-nodes"
@@ -76,7 +75,6 @@ resource "aws_iam_role" "nodes" {
 POLICY  
 }
 
-# Now contains AssumeRoleForPodIdentity for the Pod Identity Agent
 resource "aws_iam_role_policy_attachment" "amazon_eks_worker_node_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
   role = aws_iam_role.nodes.name
@@ -92,7 +90,10 @@ resource "aws_iam_role_policy_attachment" "amazon_ec2_container_registry_read_on
   role = aws_iam_role.nodes.name
 }
 
-# Behind the scenes its managed as an EC2 autoscaler group
+
+################################################################################
+# Worker Nodes Role and Policies 
+################################################################################
 
 resource "aws_eks_node_group" "general" {
   cluster_name = aws_eks_cluster.eks.name
