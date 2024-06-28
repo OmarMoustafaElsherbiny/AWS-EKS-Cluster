@@ -1,4 +1,4 @@
-name: "CI"
+name: "CD"
 
 run-name: ${{ github.actor }} invoked Terraform Apply 
 
@@ -20,13 +20,14 @@ env:
 
 jobs:
   deploy:
-    name: "CI"
-    runs-on: ubuntu-latest
+    name: "Terraform Apply"
+    timeout-minutes: 30
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # Tag: v4.1.7
 
       - name: Upload Terraform Configuration
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
@@ -35,17 +36,35 @@ jobs:
           directory: ${{ env.ROOT_CONFIG_DIRECTORY }}
           workspace: ${{ env.TF_WORKSPACE }}
 
-      - name: Create Apply Run
+
+      - name: Create Plan Run
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
-        id: apply-run
+        id: plan-run
         with:
           workspace: ${{ env.TF_WORKSPACE }}
           configuration_version: ${{ steps.apply-upload.outputs.configuration_version_id }}
+          plan_only: true
 
-      - name: Terraform Apply
-        uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
-        if: fromJSON(steps.apply-run.outputs.payload).data.attributes.actions.IsConfirmable
-        id: apply
+
+      - name: Get Plan Output
+        uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.0.0
+        id: plan-output
         with:
-          run: ${{ steps.apply-run.outputs.run_id }}
-          comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
+          plan: ${{ fromJSON(steps.plan-run.outputs.payload).data.relationships.plan.data.id }}
+
+
+
+      # - name: Create Apply Run
+      #   uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
+      #   id: apply-run
+      #   with:
+      #     workspace: ${{ env.TF_WORKSPACE }}
+      #     configuration_version: ${{ steps.apply-upload.outputs.configuration_version_id }}
+
+      # - name: Terraform Apply
+      #   uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
+      #   if: fromJSON(steps.apply-run.outputs.payload).data.attributes.actions.IsConfirmable
+      #   id: apply
+      #   with:
+      #     run: ${{ steps.apply-run.outputs.run_id }}
+      #     comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
