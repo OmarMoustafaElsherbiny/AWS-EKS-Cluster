@@ -8,32 +8,32 @@ terraform {
   }
 }
 
-locals {  
-  region = "us-east-1"
-  zone1 = "us-east-1a"
-  zone2 = "us-east-1b"
-  eks_name = "my-eks-cluster"
+locals {
+  region      = "us-east-1"
+  zone1       = "us-east-1a"
+  zone2       = "us-east-1b"
+  eks_name    = "my-eks-cluster"
   eks_version = "1.29"
 
   public_subnets_eks_tags = {
-    "kubernetes.io/role/elb" = "1"
+    "kubernetes.io/role/elb"                                               = "1"
     "kubernetes.io/cluster/${local.general_tags["env"]}-${local.eks_name}" = "owned"
   }
 
   private_subnet_eks_tags = {
-    "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/role/internal-elb"                                      = "1"
     "kubernetes.io/cluster/${local.general_tags["env"]}-${local.eks_name}" = "owned"
   }
 
   general_tags = {
-    Project     = "EKS cluster"
-    env = "staging"
-    ManagedBy   = "Terraform"
+    Project   = "EKS cluster"
+    env       = "staging"
+    ManagedBy = "Terraform"
   }
 }
 
 provider "aws" {
-  region = local.region 
+  region = local.region
 }
 
 module "two_tier_vpc" {
@@ -43,7 +43,7 @@ module "two_tier_vpc" {
   cidr = "10.0.0.0/16"
 
   azs             = [local.zone1, local.zone2]
-  public_subnets = ["10.0.0.0/24", "10.0.1.0/24"]
+  public_subnets  = ["10.0.0.0/24", "10.0.1.0/24"]
   private_subnets = ["10.0.101.0/24", "10.0.102.0/24"]
 
   public_subnet_map_public_ip_on_launch = true

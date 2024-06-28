@@ -3,7 +3,7 @@
 ################################################################################
 
 resource "aws_iam_role" "eks" {
-  name = "${local.general_tags.env}-${local.eks_name}-eks-cluster"
+  name               = "${local.general_tags.env}-${local.eks_name}-eks-cluster"
   assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -22,7 +22,7 @@ POLICY
 
 resource "aws_iam_role_policy_attachment" "eks" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role = aws_iam_role.eks.name
+  role       = aws_iam_role.eks.name
 }
 
 
@@ -31,13 +31,13 @@ resource "aws_iam_role_policy_attachment" "eks" {
 ################################################################################
 
 resource "aws_eks_cluster" "eks" {
-  name = "${local.general_tags.env}-${local.eks_name}"
-  version = local.eks_version
+  name     = "${local.general_tags.env}-${local.eks_name}"
+  version  = local.eks_version
   role_arn = aws_iam_role.eks.arn
 
   vpc_config {
     endpoint_private_access = false
-    endpoint_public_access = true
+    endpoint_public_access  = true
     subnet_ids = [
       module.two_tier_vpc.private_subnets["0"].id,
       module.two_tier_vpc.private_subnets["1"].id
@@ -45,11 +45,11 @@ resource "aws_eks_cluster" "eks" {
   }
 
   access_config {
-    authentication_mode = "API"
+    authentication_mode                         = "API"
     bootstrap_cluster_creator_admin_permissions = true
   }
 
-  depends_on = [ aws_iam_role_policy_attachment.eks ]
+  depends_on = [aws_iam_role_policy_attachment.eks]
 }
 
 
@@ -58,7 +58,7 @@ resource "aws_eks_cluster" "eks" {
 ################################################################################
 
 resource "aws_iam_role" "nodes" {
-  name = "${local.general_tags.env}-${local.eks_name}-eks-nodes"
+  name               = "${local.general_tags.env}-${local.eks_name}-eks-nodes"
   assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -77,17 +77,17 @@ POLICY
 
 resource "aws_iam_role_policy_attachment" "amazon_eks_worker_node_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role = aws_iam_role.nodes.name
+  role       = aws_iam_role.nodes.name
 }
 
 resource "aws_iam_role_policy_attachment" "amazon_eks_cni_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role = aws_iam_role.nodes.name
+  role       = aws_iam_role.nodes.name
 }
 
 resource "aws_iam_role_policy_attachment" "amazon_ec2_container_registry_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role = aws_iam_role.nodes.name
+  role       = aws_iam_role.nodes.name
 }
 
 
@@ -96,22 +96,22 @@ resource "aws_iam_role_policy_attachment" "amazon_ec2_container_registry_read_on
 ################################################################################
 
 resource "aws_eks_node_group" "general" {
-  cluster_name = aws_eks_cluster.eks.name
-  version = local.eks_version
+  cluster_name    = aws_eks_cluster.eks.name
+  version         = local.eks_version
   node_group_name = "general"
-  node_role_arn = aws_iam_role.nodes.arn
+  node_role_arn   = aws_iam_role.nodes.arn
 
   subnet_ids = [
     module.two_tier_vpc.private_subnets["0"].id,
     module.two_tier_vpc.private_subnets["1"].id
   ]
-  capacity_type = "ON_DEMAND"
-  instance_types = [ "t3.large" ]
+  capacity_type  = "ON_DEMAND"
+  instance_types = ["t3.large"]
 
   scaling_config {
     desired_size = 1
-    max_size = 3
-    min_size = 0
+    max_size     = 3
+    min_size     = 0
   }
 
   update_config {
@@ -122,10 +122,10 @@ resource "aws_eks_node_group" "general" {
     role = "general"
   }
 
-  depends_on = [ 
+  depends_on = [
     aws_iam_role_policy_attachment.amazon_eks_worker_node_policy,
     aws_iam_role_policy_attachment.amazon_eks_cni_policy,
-    aws_iam_role_policy_attachment.amazon_ec2_container_registry_read_only 
+    aws_iam_role_policy_attachment.amazon_ec2_container_registry_read_only
   ]
 
   lifecycle {
