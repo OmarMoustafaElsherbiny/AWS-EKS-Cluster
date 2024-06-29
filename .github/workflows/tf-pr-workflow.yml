@@ -1,38 +1,61 @@
-name: "Terraform Plan"
+name: "Terraform CI"
 
-run-name: ${{ github.actor }} invoked Terraform Plan
+run-name: ${{ github.actor }} invoked a ${{ github.event_name }} Terraform CI workflow on ${{ github.ref_name }} ${{ github.ref_type }}
 
 on:
   pull_request:
+    branches: [main]
     paths-ignore:
-      - "**/README.md"
-      - "**/LICENSE"
-      - ".github/workflows/**"
+      - "README.md"
+      - "LICENSE"
+      - ".gitignore"
       - "Diagram/**"
+      - ".github/workflows/**"
 
 env:
-  TF_CLOUD_ORGANIZATION: "${{ secrets.TF_CLOUD_ORGANIZATION }}"
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  TF_CLOUD_ORGANIZATION: "${{ secrets.TF_CLOUD_ORGANIZATION }}"
   TF_WORKSPACE: "${{ secrets.TF_WORKSPACE }}"
-  CONFIG_DIRECTORY: "./" # Terraform config path on the repo
+  ROOT_CONFIG_DIRECTORY: "./"
+  TF_VERSION: "1.5.7"
 
 jobs:
-  terraform:
-    name: "Terraform Plan"
-    runs-on: ubuntu-latest
+  terraform-ci:
+    name: "Terraform CI"
+    timeout-minutes: 30
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # Tag: v4.1.7
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3.1.1
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
 
       - name: Upload Configuration
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
         id: plan-upload
         with:
-          directory: ${{ env.CONFIG_DIRECTORY }}
+          directory: ${{ env.ROOT_CONFIG_DIRECTORY }}
           workspace: ${{ env.TF_WORKSPACE }}
           organization: ${{ env.TF_CLOUD_ORGANIZATION }}
           speculative: true

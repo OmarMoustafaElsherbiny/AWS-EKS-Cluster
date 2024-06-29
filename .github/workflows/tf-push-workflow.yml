@@ -1,0 +1,114 @@
+name: "Terraform CI/CD"
+
+
+run-name: ${{ github.actor }} invoked a ${{ github.event_name }} Terraform CI/CD workflow on ${{ github.ref_name }} ${{ github.ref_type }}
+
+
+on:
+  push:
+    branches: [main, feature/**, experimental/**, hotfix/**, bugfix/**, release/**]
+    paths-ignore:
+      - "README.md"
+      - "LICENSE"
+      - ".gitignore"
+      - "Diagram/**"
+      - ".github/workflows/**"
+
+env:
+  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  TF_CLOUD_ORGANIZATION: "${{ secrets.TF_CLOUD_ORGANIZATION }}"
+  TF_WORKSPACE: "${{ secrets.TF_WORKSPACE }}"
+  ROOT_CONFIG_DIRECTORY: "./"
+  TF_VERSION: "1.5.7"
+
+jobs:
+  terraform-ci:
+    name: "Terraform CI"
+    timeout-minutes: 30
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    if: github.ref_name != 'main'
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # Tag: v4.1.7
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3.1.1
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Upload Configuration
+        uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
+        id: plan-upload
+        with:
+          directory: ${{ env.ROOT_CONFIG_DIRECTORY }}
+          workspace: ${{ env.TF_WORKSPACE }}
+          organization: ${{ env.TF_CLOUD_ORGANIZATION }}
+          speculative: true
+
+      - name: Create Plan Run
+        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
+        id: plan-run
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          configuration_version: ${{ steps.plan-upload.outputs.configuration_version_id }}
+          plan_only: true
+
+      - name: Get Plan Output
+        uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.0.0
+        id: plan-output
+        with:
+          plan: ${{ fromJSON(steps.plan-run.outputs.payload).data.relationships.plan.data.id }}
+
+
+  terraform-cd:
+    name: "Terraform CD"
+    timeout-minutes: 30
+    needs: terraform-ci
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # Tag: v4.1.7
+
+      - name: Upload Configuration
+        uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
+        id: apply-upload
+        with:
+          directory: ${{ env.ROOT_CONFIG_DIRECTORY }}
+          workspace: ${{ env.TF_WORKSPACE }}
+          organization: ${{ env.TF_CLOUD_ORGANIZATION }}
+          speculative: true
+
+      - name: Create Apply Run
+        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
+        id: apply-run
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          configuration_version: ${{ steps.apply-upload.outputs.configuration_version_id }}
+  
+      - name: Terraform Apply
+        uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
+        if: fromJSON(steps.apply-run.outputs.payload).data.attributes.actions.IsConfirmable
+        id: apply
+        with:
+          run: ${{ steps.apply-run.outputs.run_id }}
+          comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
