@@ -32,7 +32,7 @@ resource "aws_iam_user_policy_attachment" "developer_eks" {
 }
 
 resource "aws_eks_access_entry" "developer" {
-  cluster_name = aws_eks_cluster.eks.name
+  cluster_name = module.eks_cluster.eks_cluster_name
   principal_arn = aws_iam_user.developer.arn
   # The name of the group that the role was bound to in the k8s cluster
   kubernetes_groups = ["my-viewer"]
@@ -55,7 +55,7 @@ resource "aws_iam_role" "eks_admin" {
       "Effect": "Allow",
       "Action": "sts:AssumeRole",
       "Principal": {
-      "AWS": "arn:aws: iam::${data.aws_caller_identity.current.account_id}:root"
+      "AWS": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
       }
     }
   ]
@@ -131,7 +131,7 @@ resource "aws_iam_user_policy_attachment" "manager" {
 
 # Best practice: use IAM roles due to temporary credentials
 resource "aws_eks_access_entry" "manager" {
-  cluster_name = aws_eks_cluster.eks.name
+  cluster_name = module.eks_cluster.eks_cluster_name
   principal_arn = aws_iam_role.eks_admin.arn
   kubernetes_groups = ["my-admin"]
   

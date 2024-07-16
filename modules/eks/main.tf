@@ -3,7 +3,7 @@
 ################################################################################
 
 resource "aws_iam_role" "eks" {
-  name = "${local.general_tags.env}-${local.eks_name}-eks-cluster"
+  name = "${var.name}-eks-cluster"
   assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -31,17 +31,14 @@ resource "aws_iam_role_policy_attachment" "eks" {
 ################################################################################
 
 resource "aws_eks_cluster" "eks" {
-  name = "${local.general_tags.env}-${local.eks_name}"
-  version = local.eks_version
+  name = "${var.name}"
+  version = var.k8s_version
   role_arn = aws_iam_role.eks.arn
 
   vpc_config {
     endpoint_private_access = false
     endpoint_public_access = true
-    subnet_ids = [
-      module.two_tier_vpc.private_subnets["0"].id,
-      module.two_tier_vpc.private_subnets["1"].id
-    ]
+    subnet_ids = var.eks_cluster_subnets_id
   }
 
   access_config {
@@ -58,7 +55,7 @@ resource "aws_eks_cluster" "eks" {
 ################################################################################
 
 resource "aws_iam_role" "nodes" {
-  name = "${local.general_tags.env}-${local.eks_name}-eks-nodes"
+  name = "${var.name}-eks-nodes"
   assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -97,14 +94,11 @@ resource "aws_iam_role_policy_attachment" "amazon_ec2_container_registry_read_on
 
 resource "aws_eks_node_group" "general" {
   cluster_name = aws_eks_cluster.eks.name
-  version = local.eks_version
+  version = var.k8s_version
   node_group_name = "general"
   node_role_arn = aws_iam_role.nodes.arn
 
-  subnet_ids = [
-    module.two_tier_vpc.private_subnets["0"].id,
-    module.two_tier_vpc.private_subnets["1"].id
-  ]
+  subnet_ids = var.eks_cluster_subnets_id
   capacity_type = "ON_DEMAND"
   instance_types = [ "t3.large" ]
 

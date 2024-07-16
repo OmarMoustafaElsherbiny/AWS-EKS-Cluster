@@ -56,3 +56,15 @@ module "two_tier_vpc" {
 
   public_subnet_tags = local.public_subnets_eks_tags
 }
+
+module "eks_cluster" {
+  source = "./modules/eks"
+
+  name = "${local.general_tags["env"]}-${local.eks_name}"
+  k8s_version = local.eks_version
+
+  eks_cluster_subnets_id = [
+    module.two_tier_vpc.private_subnets["0"].id,
+    module.two_tier_vpc.private_subnets["1"].id
+  ]
+}
