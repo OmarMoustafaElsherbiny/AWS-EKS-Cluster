@@ -1,4 +1,4 @@
-name: "Terraform CI"
+name: "Terraform PR CI"
 
 run-name: ${{ github.actor }} invoked a ${{ github.event_name }} Terraform CI workflow on ${{ github.ref_name }} ${{ github.ref_type }}
 

@@ -28,7 +28,7 @@ output "public_subnets" {
   value = aws_subnet.public
 }
 
-output "private_subents" {
+output "private_subnets" {
   description = "List of private subnets objects"
   value = aws_subnet.private
 }

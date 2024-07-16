@@ -28,6 +28,8 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+    # Assumes you merging into main through a PR which runs the PR workflow that runs the CI, 
+    # the skip is to prevent the push workflow from re-running the CI and instead goes for the CD once the changes are merged.
     if: github.ref_name != 'main'
     steps:
 
@@ -78,12 +80,17 @@ jobs:
 
 
   terraform-cd:
+    env:
+      # Controls wether to skip the CD run if you decide to skip long deployment times
+      SKIP_CD: false
     name: "Terraform CD"
     timeout-minutes: 30
     needs: terraform-ci
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+    # Runs the CD if SKIP_CD is not true
+    if: ${{ !vars.SKIP_CD }}
     steps:
 
       - name: Checkout
@@ -96,7 +103,6 @@ jobs:
           directory: ${{ env.ROOT_CONFIG_DIRECTORY }}
           workspace: ${{ env.TF_WORKSPACE }}
           organization: ${{ env.TF_CLOUD_ORGANIZATION }}
-          speculative: true
 
       - name: Create Apply Run
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0

@@ -36,7 +36,7 @@ provider "aws" {
   region = local.region 
 }
 
-module "three_tier_vpc" {
+module "two_tier_vpc" {
   source = "./modules/vpc"
 
   name = "my-vpc"
@@ -55,4 +55,16 @@ module "three_tier_vpc" {
   private_subnet_tags = local.private_subnet_eks_tags
 
   public_subnet_tags = local.public_subnets_eks_tags
+}
+
+module "eks_cluster" {
+  source = "./modules/eks"
+
+  name = "${local.general_tags["env"]}-${local.eks_name}"
+  k8s_version = local.eks_version
+
+  eks_cluster_subnets_id = [
+    module.two_tier_vpc.private_subnets["0"].id,
+    module.two_tier_vpc.private_subnets["1"].id
+  ]
 }
